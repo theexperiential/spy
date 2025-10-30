@@ -4,7 +4,7 @@ Instantly identifies your PC by displaying the hostname on your desktop
 with a grid overlay and red border for pixel mapping purposes.
 """
 
-__version__ = "1.1.0"
+__version__ = "1.2.0"
 __author__ = "Spy Contributors"
 
 from PIL import Image, ImageDraw, ImageFont
@@ -22,13 +22,26 @@ DEFAULT_CONFIG = {
     'border_width': 3,  # pixels
     'text_color': (255, 255, 255),  # White
     'corner_text_color': (169, 169, 169),  # Light grey
-    'font_size': 240,  # Very large, bold text
+    'font_size': None,  # Auto-calculated based on resolution
+    'corner_font_size': 60,  # Fixed size for corner labels
     'show_center_text': True,
     'show_corner_text': True,
     'show_grid': True,
     'show_circle': True,
     'show_border': True
 }
+
+
+def calculate_font_size(width, height):
+    """Calculate appropriate font size based on screen resolution."""
+    # Base font size on screen height for consistency
+    # 1080p (HD): ~120pt
+    # 1440p (2K): ~160pt
+    # 2160p (4K): ~240pt
+    base_size = int(height / 9)  # Height / 9 gives good proportions
+
+    # Clamp between reasonable values
+    return max(80, min(300, base_size))
 
 
 def parse_color(color_str):
@@ -127,13 +140,20 @@ def configure_advanced():
     if config['show_center_text']:
         config['text_color'] = get_color_input(
             "Center text color", DEFAULT_CONFIG['text_color'])
-        config['font_size'] = get_number_input(
-            "Font size", DEFAULT_CONFIG['font_size'], 20, 500)
+        # Offer manual font size or auto-calculate
+        use_auto = get_yes_no("Auto-calculate font size based on resolution?", True)
+        if use_auto:
+            config['font_size'] = None
+        else:
+            config['font_size'] = get_number_input(
+                "Font size", 120, 20, 500)
 
     config['show_corner_text'] = get_yes_no("Show corner hostname labels?", True)
     if config['show_corner_text']:
         config['corner_text_color'] = get_color_input(
             "Corner text color", DEFAULT_CONFIG['corner_text_color'])
+        config['corner_font_size'] = get_number_input(
+            "Corner text size", DEFAULT_CONFIG['corner_font_size'], 20, 200)
 
     print("\n" + "=" * 60)
     print("Configuration complete!")
@@ -256,7 +276,12 @@ def create_wallpaper_image(hostname, width, height, config=None):
     # Draw hostname text
     if config['show_center_text'] or config['show_corner_text']:
         print(f"Drawing hostname: {hostname}")
+
+        # Calculate font size based on resolution if not explicitly set
         font_size = config['font_size']
+        if font_size is None:
+            font_size = calculate_font_size(width, height)
+            print(f"Auto-calculated font size: {font_size}pt for {width}x{height}")
 
         # Load fonts with helper function
         def load_font(size):
@@ -308,8 +333,8 @@ def create_wallpaper_image(hostname, width, height, config=None):
             # Draw the hostname text (center)
             draw.text((x, y), hostname, fill=config['text_color'], font=font_large)
 
-        # Load small font for corners (fixed at 60pt regardless of center text size)
-        font_small = load_font(60)
+        # Load small font for corners
+        font_small = load_font(config['corner_font_size'])
 
         # Draw corner labels
         if config['show_corner_text']:

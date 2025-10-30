@@ -61,8 +61,8 @@ For IT admins deploying to multiple machines:
 - Grid: 100px spacing
 - Circle: Full screen height (perfect circle)
 - Border: 3px red
-- Center text: 240pt white (auto-scales)
-- Corner text: 60pt light grey
+- Center text: Auto-sized based on resolution (1080p=120pt, 1440p=160pt, 4K=240pt)
+- Corner text: 60pt light grey (customizable in Advanced mode)
 
 ## License
 
