@@ -9,7 +9,6 @@ spy.spec
 
 # Distribution / packaging
 dist/*.exe
-!dist/spy.exe
 *.egg-info/
 
 # Virtual environment
