@@ -1,0 +1,46 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# PyInstaller build files
+build/
+spy.spec
+
+# Distribution / packaging
+dist/*.exe
+!dist/spy.exe
+*.egg-info/
+
+# Virtual environment
+venv/
+env/
+ENV/
+
+# IDE specific files
+.vscode/
+.idea/
+.claude/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Generated wallpaper (user-specific)
+*.bmp
+
+# Temporary files
+*.tmp
+*.log
+
+# Python cache
+.pytest_cache/
+.mypy_cache/
+
+# Icon generation script (kept in assets/ for reference)
+# Uncomment if you don't want to track icon generation:
+# assets/create_icon.py
