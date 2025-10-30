@@ -16,18 +16,32 @@ Just run `spy.exe` - that's it! Your desktop wallpaper updates with your hostnam
 
 - 🖥️ **Large hostname text** - visible at a glance
 - 📍 **Corner labels** - visible even with windows open
+- 🌐 **IP address display** - optional, shown at top center
 - 📐 **Grid & circle overlay** - for pixel mapping/calibration
-- 🎨 **Quick or Advanced mode** - use defaults or customize everything
+- 🎨 **3 modes** - Quick, Quick+IP, or full customization
 - 🔍 **4K/HiDPI aware** - detects true screen resolution
 - ⚡ **Auto-scaling** - long hostnames never get cropped
 
 ## Usage
 
-### Quick Mode (Default)
-Just press Enter. Uses sensible defaults.
+### Three Modes
 
-### Advanced Mode
-Enter `2` to customize:
+**[1] Quick (Default)**
+- Press Enter
+- No IP address
+- Default settings
+
+**[2] Quick + IP**
+- Shows IP address at top
+- Auto-detects network adapter
+- Default settings
+
+**[3] Advanced**
+- Full customization
+- Optional IP address
+
+
+**Advanced Mode Options:**
 - Background, grid, border, text colors
 - Toggle features on/off
 - Adjust sizes and spacing

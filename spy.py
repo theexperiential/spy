@@ -4,7 +4,7 @@ Instantly identifies your PC by displaying the hostname on your desktop
 with a grid overlay and red border for pixel mapping purposes.
 """
 
-__version__ = "1.2.0"
+__version__ = "1.3.0"
 __author__ = "Spy Contributors"
 
 from PIL import Image, ImageDraw, ImageFont
@@ -12,6 +12,7 @@ import socket
 import ctypes
 import os
 import sys
+import subprocess
 
 # Default Configuration
 DEFAULT_CONFIG = {
@@ -26,6 +27,7 @@ DEFAULT_CONFIG = {
     'corner_font_size': None,  # Auto-calculated based on resolution
     'show_center_text': True,
     'show_corner_text': True,
+    'show_ip_address': False,  # Show IP address at top center
     'show_grid': True,
     'show_circle': True,
     'show_border': True
@@ -188,6 +190,57 @@ def get_hostname():
         return "UNKNOWN-PC"
 
 
+def get_ip_addresses():
+    """Get list of non-loopback IPv4 addresses from network adapters."""
+    ip_addresses = []
+    try:
+        # Get all network interfaces
+        hostname = socket.gethostname()
+        # Get all IPs associated with hostname
+        addrs = socket.getaddrinfo(hostname, None)
+
+        for addr in addrs:
+            ip = addr[4][0]
+            # Filter out loopback and IPv6
+            if ':' not in ip and not ip.startswith('127.'):
+                if ip not in ip_addresses:
+                    ip_addresses.append(ip)
+    except Exception as e:
+        print(f"Warning: Could not detect IP addresses ({e})")
+
+    return ip_addresses
+
+
+def select_ip_address():
+    """Interactive IP address selection."""
+    ips = get_ip_addresses()
+
+    if not ips:
+        print("No network IP addresses found.")
+        return None
+
+    if len(ips) == 1:
+        print(f"Detected IP: {ips[0]}")
+        return ips[0]
+
+    # Multiple IPs - let user choose
+    print("\nMultiple IP addresses detected:")
+    for i, ip in enumerate(ips, 1):
+        print(f"  [{i}] {ip}")
+
+    while True:
+        choice = input(f"\nSelect IP address [1]: ").strip()
+        if choice == '':
+            return ips[0]
+        try:
+            idx = int(choice) - 1
+            if 0 <= idx < len(ips):
+                return ips[idx]
+        except ValueError:
+            pass
+        print("Invalid choice. Please try again.")
+
+
 def get_screen_resolution():
     """Get the primary monitor's screen resolution with DPI awareness."""
     # Method 1: Try Windows API with DPI awareness (most accurate)
@@ -227,7 +280,7 @@ def get_screen_resolution():
     return 1920, 1080
 
 
-def create_wallpaper_image(hostname, width, height, config=None):
+def create_wallpaper_image(hostname, width, height, config=None, ip_address=None):
     """
     Create the wallpaper image with hostname, grid, and border.
 
@@ -236,6 +289,7 @@ def create_wallpaper_image(hostname, width, height, config=None):
         width: Image width in pixels
         height: Image height in pixels
         config: Configuration dictionary (uses DEFAULT_CONFIG if None)
+        ip_address: Optional IP address to display at top center
 
     Returns:
         PIL Image object
@@ -263,7 +317,9 @@ def create_wallpaper_image(hostname, width, height, config=None):
 
         # Calculate radius to fit exactly within screen (perfect circle, not oval)
         # Use the smaller dimension (height or width) to ensure circle fits
-        max_radius = min(width, height) // 2
+        # Reduce by 10% if showing IP address to avoid overlap
+        reduction = 0.90 if ip_address else 1.0
+        max_radius = int(min(width, height) // 2 * reduction)
 
         if config['show_grid']:
             # Round radius down to nearest grid spacing multiple for clean alignment
@@ -380,6 +436,21 @@ def create_wallpaper_image(hostname, width, height, config=None):
             # Bottom-right corner (raised to avoid taskbar)
             draw.text((width - small_width - padding_side, height - small_height - padding_bottom), hostname, fill=config['corner_text_color'], font=font_small)
 
+    # Draw IP address at top center if provided
+    if ip_address and config.get('show_ip_address', False):
+        print(f"Drawing IP address: {ip_address}")
+        ip_font = load_font(corner_size)  # Same size as corner text
+
+        # Get IP text dimensions
+        bbox_ip = draw.textbbox((0, 0), ip_address, font=ip_font)
+        ip_width = bbox_ip[2] - bbox_ip[0]
+
+        # Position at top center
+        ip_x = (width - ip_width) // 2
+        ip_y = 20  # 20px from top
+
+        draw.text((ip_x, ip_y), ip_address, fill=config['corner_text_color'], font=ip_font)
+
     return img
 
 
@@ -445,17 +516,32 @@ def main():
     print(f"Spy - Machine Identity Wallpaper Generator v{__version__}")
     print("=" * 60)
 
-    # Mode selection
+    # Mode selection with IP option
     print("\nSelect mode:")
-    print("  [1] Quick (use default settings)")
-    print("  [2] Advanced (customize colors and features)")
+    print("  [1] Quick - No IP address (default settings)")
+    print("  [2] Quick + IP - Show IP address (default settings)")
+    print("  [3] Advanced - Full customization")
 
     mode = input("\nEnter choice [1]: ").strip()
 
-    if mode == '2':
+    ip_address = None
+    if mode == '3':
+        # Advanced mode
         config = configure_advanced()
+        # Ask about IP in advanced mode too
+        show_ip = get_yes_no("\nShow IP address at top?", False)
+        if show_ip:
+            ip_address = select_ip_address()
+            config['show_ip_address'] = True
+    elif mode == '2':
+        # Quick + IP
+        config = DEFAULT_CONFIG.copy()
+        config['show_ip_address'] = True
+        print("\nUsing default configuration with IP address...")
+        ip_address = select_ip_address()
     else:
-        config = DEFAULT_CONFIG
+        # Quick (no IP)
+        config = DEFAULT_CONFIG.copy()
         print("\nUsing default configuration...")
 
     # Step 1: Get hostname
@@ -468,7 +554,7 @@ def main():
 
     # Step 3: Create wallpaper image
     print(f"\nGenerating wallpaper image...")
-    img = create_wallpaper_image(hostname, width, height, config)
+    img = create_wallpaper_image(hostname, width, height, config, ip_address)
 
     # Step 4: Save wallpaper
     wallpaper_path = save_wallpaper(img)
