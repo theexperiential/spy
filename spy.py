@@ -23,7 +23,7 @@ DEFAULT_CONFIG = {
     'text_color': (255, 255, 255),  # White
     'corner_text_color': (169, 169, 169),  # Light grey
     'font_size': None,  # Auto-calculated based on resolution
-    'corner_font_size': 60,  # Fixed size for corner labels
+    'corner_font_size': None,  # Auto-calculated based on resolution
     'show_center_text': True,
     'show_corner_text': True,
     'show_grid': True,
@@ -42,6 +42,18 @@ def calculate_font_size(width, height):
 
     # Clamp between reasonable values
     return max(80, min(300, base_size))
+
+
+def calculate_corner_font_size(width, height):
+    """Calculate appropriate corner text size based on screen resolution."""
+    # Corner text should be about 1/4 of center text size
+    # 1080p (HD): ~30pt
+    # 1440p (2K): ~40pt
+    # 2160p (4K): ~60pt
+    base_size = int(height / 36)  # Height / 36 gives good proportions
+
+    # Clamp between reasonable values
+    return max(20, min(100, base_size))
 
 
 def parse_color(color_str):
@@ -152,8 +164,13 @@ def configure_advanced():
     if config['show_corner_text']:
         config['corner_text_color'] = get_color_input(
             "Corner text color", DEFAULT_CONFIG['corner_text_color'])
-        config['corner_font_size'] = get_number_input(
-            "Corner text size", DEFAULT_CONFIG['corner_font_size'], 20, 200)
+        # Offer manual corner font size or auto-calculate
+        use_auto_corner = get_yes_no("Auto-calculate corner text size?", True)
+        if use_auto_corner:
+            config['corner_font_size'] = None
+        else:
+            config['corner_font_size'] = get_number_input(
+                "Corner text size", 40, 20, 200)
 
     print("\n" + "=" * 60)
     print("Configuration complete!")
@@ -333,8 +350,12 @@ def create_wallpaper_image(hostname, width, height, config=None):
             # Draw the hostname text (center)
             draw.text((x, y), hostname, fill=config['text_color'], font=font_large)
 
-        # Load small font for corners
-        font_small = load_font(config['corner_font_size'])
+        # Load small font for corners - auto-calculate if not set
+        corner_size = config['corner_font_size']
+        if corner_size is None:
+            corner_size = calculate_corner_font_size(width, height)
+            print(f"Auto-calculated corner text size: {corner_size}pt")
+        font_small = load_font(corner_size)
 
         # Draw corner labels
         if config['show_corner_text']:
